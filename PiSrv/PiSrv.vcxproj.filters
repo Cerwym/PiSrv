@@ -23,4 +23,9 @@
     <None Include="flags.mak" />
     <None Include="Makefile" />
   </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Timer.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+  </ItemGroup>
 </Project>

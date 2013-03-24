@@ -1,6 +1,7 @@
 /*
 PiSrv, a small TCP server for the raspberry Pi - Peter Lockett 0901632
 */
+#include "Timer.h"
 #include <iostream>
 #include <stdio.h>
 #include <unistd.h>
@@ -11,8 +12,6 @@ PiSrv, a small TCP server for the raspberry Pi - Peter Lockett 0901632
 #include <sys/socket.h>
 #include <sys/types.h>
 #include <sys/select.h>
-#include <sys/time.h>
-// #include <curl/curl.h>
 
 #define MAX_SIZE 50 // client_indexmum character size
 #define NUMCONN 50 
@@ -22,18 +21,20 @@ PiSrv, a small TCP server for the raspberry Pi - Peter Lockett 0901632
 struct Cli_Info
 {
 	int socknum;
-	FILE *f;
-	// Might want to put in the disconnect time here to sore it
+	FILE *mapfile;
+	// Might want to put in the disconnect time here to store it
+	Timer t;
+	double duration;
 };
 
-int recieve_file(int socket, char buff[])
+std::vector<Cli_Info> Clients;
+
+int recieve_file(int clientNum, char buff[], int bytes)
 {
-	FILE *f = fopen("tmp.json", "w"); // append socket number to this filename just to make sure no other client sending a smaller file will overwrite.
-	fwrite(buff,1, sizeof(buff), f );
+	fwrite(buff, sizeof(char), bytes, Clients.at(clientNum).mapfile);
 
 	printf("Received:- %s \n", buff);
-	// TODO : send message back to client that their message has been rec'd
-	//send(Sockets.at(i), MSG_CONNECTED, strlen(MSG_CONNECTED), 0)
+	return 1;
 }
 int main()
 {
@@ -42,20 +43,14 @@ int main()
 	struct sockaddr_in serv_addr, client_addr;
 	char buff[MAX_SIZE];
 
-	// CURL Stuff
-	// CURL *curl;
-	// curl = curl_easy_init();
-
 	timeval timeout;
 	timeout.tv_sec = 5;
 	timeout.tv_usec = 500000;
-	std::vector<int> Sockets;
-	std::vector<Cli_Info> Clients;
-	/* TODO: change this : */ for (int i = 0; i < NUMCONN; i++)Sockets.push_back(0);
+	/* TODO: change this : */ for (int i = 0; i < NUMCONN; i++)Clients.push_back(Cli_Info());
 
-	Sockets.at(0) = socket(AF_INET, SOCK_STREAM, 0);
+	Clients.at(0).socknum = socket(AF_INET, SOCK_STREAM, 0);
 
-	if(Sockets.at(0) < 0)
+	if(Clients.at(0).socknum < 0)
 	{
 		printf("Failed creating socket\n");
 		return 0;
@@ -69,13 +64,13 @@ int main()
 	serv_addr.sin_port = htons(5099);
 
 
-	if (bind(Sockets.at(0), (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+	if (bind(Clients.at(0).socknum, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
 	{
 		printf("Failed to bind on port\n");
 		return 0;
 	}
 
-	if(listen(Sockets.at(0), 5) == -1) // -1 is on error, 0 is successful
+	if(listen(Clients.at(0).socknum, 5) == -1) // -1 is on error, 0 is successful
 	{
 		printf("Error: Unable to listen!\n");
 		return 0;
@@ -84,7 +79,7 @@ int main()
 	// Clear file descriptor sets
 	FD_ZERO(&tempset);
 	FD_ZERO(&Masterset); // initialize the descriptor set to be monitored to empty
-	FD_SET(Sockets.at(0), &Masterset); // Add the listening socket in the MASTER set
+	FD_SET(Clients.at(0).socknum, &Masterset); // Add the listening socket in the MASTER set
 
 
 	printf("Server setup - OK\n");
@@ -99,20 +94,20 @@ int main()
 		select(FD_SETSIZE, &tempset, NULL, NULL, &timeout);
 
 
-		if(FD_ISSET(Sockets.at(0), &tempset)) // new client connection
+		if(FD_ISSET(Clients.at(0).socknum, &tempset)) // new client connection
 		{
 			int size = sizeof(client_addr);
-			int Accepted, SockNUM;
+			int Accepted, freeSock;
 			Accepted = 0;
 
 			// Add that new client's socket on to a std::vector
 			// Sockets.push_back(accept(listen_desc, (struct sockaddr *)&client_addr, (socklen_t*)&size));
 			for (int i = 1; i < NUMCONN; i++)
 			{
-				if (Sockets.at(i) == 0)
+				if (Clients.at(i).socknum == 0)
 				{
-					SockNUM = i;
-					Sockets.at(SockNUM) = accept(Sockets.at(0), (struct sockaddr *)&client_addr, (socklen_t*)&size);
+					freeSock = i;
+					Clients.at(freeSock).socknum = accept(Clients.at(0).socknum, (struct sockaddr *)&client_addr, (socklen_t*)&size);
 
 					printf("Accepted new client on socket %d\n", i);
 					Accepted = 1;
@@ -126,10 +121,17 @@ int main()
 				// TODO: Send message back so the client know it has connected
 
 				// Put the transmission socket in the master set
-				FD_SET(Sockets.at(SockNUM), &Masterset);
+				FD_SET(Clients.at(freeSock).socknum, &Masterset);
 				// send (Sockets.at(SockNUM), buff, sizeof(buff), MSG_CONNECTED);
 				// snprintf(buff, sizeof(buff), "%c", MSG_CONNECTED);
 				// send(Sockets.at(SockNUM), buff, sizeof(buff), 0);
+
+				// append socket number to this filename just to make sure no other client sending a smaller file will overwrite.
+				Clients.at(freeSock).mapfile = fopen("tmp.json", "w");
+				printf("Client's file is ready to be written\n");
+				Clients.at(freeSock).t = Timer();
+				Clients.at(freeSock).t.start();
+
 				connections++;
 				printf("Number of connected clients = %d \n\n", connections);
 			}
@@ -138,33 +140,34 @@ int main()
 		// Process all connection sockets, start at 1 because the listening socket is at 0
 		for (int i = 1; i < NUMCONN; i++)
 		{
-			if (Sockets.at(i) > 0)
+			if (Clients.at(i).socknum > 0)
 			{
-				if (FD_ISSET(Sockets.at(i), &tempset))
+				if (FD_ISSET(Clients.at(i).socknum, &tempset))
 				{
-					int num_bytes = recv(Sockets.at(i), buff, sizeof(buff), 0);
 
 					// If the client i has connected and is sending byte data to the server, receive the data on that socket and write it to a file
-					if (num_bytes > 0)
+					int bytes;
+
+					while ((bytes = recv(Clients.at(i).socknum, buff, sizeof(buff), 0)) > 0)
 					{
-						buff[num_bytes] = '\0';
-						recieve_file(Sockets.at(i), buff);
+						recieve_file(i, buff, bytes);
 					}
 
-					if(num_bytes == 0)  // connection was closed by client
-					{
-						close(Sockets.at(i));
-						FD_CLR(Sockets.at(i), &Masterset);
-						Sockets.at(i) = 0;
-						printf("Client closed connection\n");
-						connections--;
-					}
+					fclose(Clients.at(i).mapfile);
+					close(Clients.at(i).socknum);
+					FD_CLR(Clients.at(i).socknum, &Masterset);
+					Clients.at(i).socknum = 0;				
+					Clients.at(i).duration = Clients.at(i).t.stop();
+
+					printf("File took %5.6f seconds to complete upload\n", Clients.at(i).duration);
+					printf("Client closed connection\n");
+					connections--;
 				}
 			}
 		}	
 	}
 
 
-	for (int i = 0; i < Sockets.size(); i++) close(Sockets.at(i)); // Close all sockets
+	for (int i = 0; i < Clients.size(); i++) close(Clients.at(i).socknum); // Close all sockets
 	return 0;
 }
