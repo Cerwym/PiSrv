@@ -42,6 +42,7 @@
     <NMakeIncludeSearchPath>C:\Users\Peter\AppData\Local\VisualGDB\RemoteSourceCache\192.168.1.68\0000\include;C:\Users\Peter\AppData\Local\VisualGDB\RemoteSourceCache\192.168.1.68\0001\include;C:\Users\Peter\AppData\Local\VisualGDB\RemoteSourceCache\192.168.1.68\0002\include-fixed;C:\Users\Peter\AppData\Local\VisualGDB\RemoteSourceCache\192.168.1.68\0003\arm-linux-gnueabihf;C:\Users\Peter\AppData\Local\VisualGDB\RemoteSourceCache\192.168.1.68\0004\include;$(NMakeIncludeSearchPath)</NMakeIncludeSearchPath>
     <NMakeForcedIncludes>gcc_defines.h;$(VISUALGDB_DIR)\gcc_compat.h;$(NMakeForcedIncludes)</NMakeForcedIncludes>
     <NMakeOutput>$(ProjectDir)PiSrv-Debug.vgdbsettings</NMakeOutput>
+    <IncludePath>Y:\Dropbox\University\Year4\_ProjectExecution\Pi\PiSrv\PiSrv\include;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <NMakeBuildCommandLine>"$(VISUALGDB_DIR)\VisualGDB.exe" /build "$(ProjectPath)" "/solution:$(SolutionPath)" "/config:$(Configuration)" "/platform:$(Platform)" "/config:$(ConfigurationName)" "/platform:$(PlatformName)"</NMakeBuildCommandLine>

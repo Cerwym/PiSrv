@@ -17,7 +17,7 @@ MCUFLAGS :=
 
 INCLUDE_DIRS := 
 LIBRARY_DIRS := 
-LIBRARY_NAMES := curl
+LIBRARY_NAMES :=
 
 CFLAGS := -ggdb -ffunction-sections
 DEBUG_CFLAGS := -O0
@@ -29,7 +29,7 @@ RELEASE_CXXFLAGS := $(RELEASE_CFLAGS)
 
 MACOS_FRAMEWORKS := 
 
-LDFLAGS :=  -Wl,-gc-sections
+LDFLAGS :=  -Wl,-gc-sections,-ljson
 DEBUG_LDFLAGS := 
 RELEASE_LDGLAGS :=
 

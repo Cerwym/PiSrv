@@ -28,3 +28,5 @@ public:
 
 	static void print(double duration){printf("%5.6f seconds\n", duration);}
 };
+
+typedef Timer i;
