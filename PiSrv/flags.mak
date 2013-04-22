@@ -29,7 +29,7 @@ RELEASE_CXXFLAGS := $(RELEASE_CFLAGS)
 
 MACOS_FRAMEWORKS := 
 
-LDFLAGS :=  -Wl,-gc-sections,-ljson
+LDFLAGS :=  -Wl,-gc-sections,-ljson -lboost_filesystem -lboost_system
 DEBUG_LDFLAGS := 
 RELEASE_LDGLAGS :=
 

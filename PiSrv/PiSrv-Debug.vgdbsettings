@@ -13,6 +13,11 @@
           </Record>
         </Records>
       </GDBEnvironment>
+      <RemoteHost>
+        <HostName>cerwym.dyndns.org</HostName>
+        <Transport>SSH</Transport>
+        <UserName>pi</UserName>
+      </RemoteHost>
       <DebuggedProgram>$(TargetPath)</DebuggedProgram>
       <UseGDBServer>false</UseGDBServer>
       <GDBServerHost>
